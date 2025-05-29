@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Read Manhwa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0e0e0e;
+      --text-color: #ffffff;
+      --btn-bg: #1f1f1f;
+      --btn-border: #00d4ff;
+      --btn-text: #00d4ff;
+      --top-btn-bg: #00d4ff;
+      --top-btn-icon: 0;
+      --toggle-bg: #00d4ff;
+      --toggle-text: black;
+    }
+
+    .light-mode {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --btn-bg: #f0f0f0;
+      --btn-border: #007bff;
+      --btn-text: #007bff;
+      --top-btn-bg: #007bff;
+      --top-btn-icon: 1;
+      --toggle-bg: #007bff;
+      --toggle-text: white;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .chapter-title {
+      text-align: center;
+      padding: 30px 15px;
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--text-color);
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .reader-image {
+      width: 100%;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .reader-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .nav-buttons {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .btn-custom {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      border: 2px solid var(--btn-border);
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .btn-custom:hover {
+      background-color: var(--btn-border);
+      color: var(--bg-color);
+    }
+
+    #backToTopBtn {
+      position: fixed;
+      bottom: 30px;
+      right: 20px;
+      display: none;
+      background-color: var(--top-btn-bg);
+      border: none;
+      padding: 10px 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px #3d3d3d;
+      z-index: 999;
+    }
+
+    #backToTopBtn img {
+      filter: brightness(var(--top-btn-icon));
+    }
+
+    #themeToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--toggle-bg);
+      color: var(--toggle-text);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+<button id="themeToggle">🌙</button>
+<button id="backToTopBtn"><img src="images/icons/up-arrow.png" alt="Up" height="15px"></button>
+
+<div class="reader-container">
+  <h1 id="chapterTitle" class="chapter-title">Loading...</h1>
+
+  <div class="nav-buttons">
+    <button id="prevChapter" class="btn btn-custom me-2">← Previous</button>
+    <button id="nextChapter" class="btn btn-custom">Next →</button>
+  </div>
+
+  <div id="chapterImages"></div>
+
+  <div class="nav-buttons">
+    <button id="prevChapterBottom" class="btn btn-custom me-2">← Previous</button>
+    <button id="nextChapterBottom" class="btn btn-custom">Next →</button>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const title = params.get('title');
+  const chapter = parseInt(params.get('chapter'));
+  const formattedTitle = title.replace(/-/g, " ");
+
+  document.getElementById("chapterTitle").innerText = `${formattedTitle} - Chapter ${chapter}`;
+
+  fetch('data/chapters.json')
+    .then(response => response.json())
+    .then(data => {
+      const chapterData = data[title];
+      if (!chapterData || !chapterData[chapter]) {
+        document.getElementById("chapterImages").innerHTML = "<p class='text-center'>Chapter not found.</p>";
+        return;
+      }
+
+      const totalPages = chapterData[chapter];
+      const imageContainer = document.getElementById("chapterImages");
+
+      for (let i = 1; i <= totalPages; i++) {
+        const img = document.createElement("img");
+        img.src = `images/${title}/chapter${chapter}/${i}.jpg`;
+        img.alt = `Page ${i}`;
+        img.className = "reader-image";
+        imageContainer.appendChild(img);
+      }
+    })
+    .catch(error => {
+      console.error("Error loading chapter data:", error);
+      document.getElementById("chapterImages").innerHTML = "<p class='text-center'>Failed to load chapter data.</p>";
+    });
+
+  function navigateChapter(change) {
+    const newChapter = chapter + change;
+    if (newChapter >= 1) {
+      window.location.href = `?title=${title}&chapter=${newChapter}`;
+    }
+  }
+
+  document.getElementById("prevChapter").onclick = () => navigateChapter(-1);
+  document.getElementById("nextChapter").onclick = () => navigateChapter(1);
+  document.getElementById("prevChapterBottom").onclick = () => navigateChapter(-1);
+  document.getElementById("nextChapterBottom").onclick = () => navigateChapter(1);
+
+  const backToTopBtn = document.getElementById("backToTopBtn");
+  window.onscroll = () => {
+    backToTopBtn.style.display = window.scrollY > 300 ? "block" : "none";
+  };
+  backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  const themeToggle = document.getElementById("themeToggle");
+  function setTheme(mode) {
+    document.body.classList.toggle("light-mode", mode === "light");
+    themeToggle.textContent = mode === "light" ? "🌙" : "☀️";
+    localStorage.setItem("theme", mode);
+  }
+
+  themeToggle.onclick = () => {
+    const current = document.body.classList.contains("light-mode") ? "dark" : "light";
+    setTheme(current);
+  };
+
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  setTheme(savedTheme);
+</script>
